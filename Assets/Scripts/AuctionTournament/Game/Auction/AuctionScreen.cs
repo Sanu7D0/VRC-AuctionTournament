@@ -1,5 +1,4 @@
 ﻿using System;
-using AuctionTournament.Util;
 using TMPro;
 using UdonSharp;
 using UnityEngine;
@@ -22,16 +21,16 @@ namespace AuctionTournament.Game.Auction
         // UI - Player status
         [SerializeField] private PlayerAuctionStatus[] playerStatuses;
 
-        private bool _isPlayerNameUpdated = false;
+        private bool _isPlayerNameUpdated;
 
         private void Update()
         {
-            if (!auctionManager.IsAuctionInProgress)
+            if (!auctionManager.IsAuctionPlaying)
                 return;
             
             // Auction status group
             roundText.text = $"{auctionManager.CurrentRound}/{auctionManager.MaxRound} Auction";
-            timeOutText.text = $"{auctionManager.RoundRemainTime:F0}";
+            timeOutText.text = $"{auctionManager.BidTimeoutRemainingSeconds:F0}";
             bidPlayerText.text = auctionManager.BidPlayerName;
             currentPriceText.text = auctionManager.CurrentPrice.ToString();
             

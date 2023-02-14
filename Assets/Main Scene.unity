@@ -4607,7 +4607,6 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 1303794401}
   gameManager: {fileID: 28163703}
-  auctionScreen: {fileID: 1008288579}
 --- !u!114 &1303794401
 MonoBehaviour:
   m_ObjectHideFlags: 2

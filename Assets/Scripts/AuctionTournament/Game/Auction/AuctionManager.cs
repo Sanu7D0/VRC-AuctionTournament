@@ -9,43 +9,34 @@ namespace AuctionTournament.Game.Auction
     public class AuctionManager : UdonSharpBehaviour
     {
         public const int BidRaiseAmount = 5;
-        private const int BidRoundTimeoutSeconds = 5;
+        private const double BidTimeoutSeconds = 5.0;
+        
+        [SerializeField] private GameManager gameManager;
         
         [UdonSynced] private int currentPrice;
         [UdonSynced] private int currentRound;
         [UdonSynced] private int maxRound;
         [UdonSynced] private int lastBidPlayerId = -1;
-        [UdonSynced] private float roundStartTime; // TODO: time sync...
+        [UdonSynced] private double bidTimeoutStartTime;
         [UdonSynced] private int[] playerBalances;
-        [UdonSynced] private bool isAuctionInProgress = false;
-        
+        [UdonSynced] private bool isAuctionPlaying;
 
-        [SerializeField] private GameManager gameManager;
-        [SerializeField] private AuctionScreen auctionScreen;
-
-        public bool IsAuctionInProgress => isAuctionInProgress;
+        public bool IsAuctionPlaying => isAuctionPlaying;
         public int[] PlayerBalances => playerBalances;
-
         public int CurrentPrice => currentPrice;
         public int CurrentRound => currentRound;
         public int MaxRound => maxRound;
-
         public string BidPlayerName => lastBidPlayerId == -1 ? "" : VRCPlayerApi.GetPlayerById(lastBidPlayerId).displayName;
 
-        public float RoundRemainTime => BidRoundTimeoutSeconds - (Time.time - roundStartTime);
-
-
-        private void Start()
-        {
-            Debug.Log($"Bidrounditimeout: {BidRoundTimeoutSeconds}");
-        }
+        public double BidTimeoutRemainingSeconds =>
+            BidTimeoutSeconds - (Networking.GetServerTimeInSeconds() - bidTimeoutStartTime);
 
         private void Update()
         {
             if (!Networking.IsMaster)
                 return;
             
-            if (!IsAuctionInProgress || RoundRemainTime > 0)
+            if (!isAuctionPlaying || BidTimeoutRemainingSeconds > 0)
                 return;
             
             EndAuctionRound();
@@ -58,7 +49,7 @@ namespace AuctionTournament.Game.Auction
                 playerBalances[i] = 50;
             currentRound = 0;
             maxRound = 5;
-            isAuctionInProgress = true;
+            isAuctionPlaying = true;
 
             StartAuctionRound();
         }
@@ -84,20 +75,20 @@ namespace AuctionTournament.Game.Auction
 
             lastBidPlayerId = senderId;
             currentPrice = desiredPrice;
-            roundStartTime = Time.time;
+            bidTimeoutStartTime = Networking.GetServerTimeInSeconds();
             RequestSerialization();
         }
         
         private void EndAuction()
         {
-            isAuctionInProgress = false;
+            isAuctionPlaying = false;
             RequestSerialization();
         }
 
         private void StartAuctionRound()
         {
             lastBidPlayerId = -1;
-            roundStartTime = Time.time;
+            bidTimeoutStartTime = Networking.GetServerTimeInSeconds();
             currentPrice = 0;
             currentRound++;
             RequestSerialization();
@@ -119,7 +110,7 @@ namespace AuctionTournament.Game.Auction
                 return;
             
             playerBalances[gameManager.GetPlayerIndex(lastBidPlayerId)] -= currentPrice;
-            RequestSerialization();
+            // RequestSerialization(); // This will synced in next EndAuction or StartAuctionRound
         }
 
         private bool CheckBalanceEnough(int playerIndex, int amount)
